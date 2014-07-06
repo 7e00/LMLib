@@ -34,6 +34,9 @@ class CART:
 
         data[interval[0]:interval[1]] = sorted(data[interval[0]:interval[1]], key=lambda x:splitfunc(x[featidx]))
         catego = splitfunc(data[interval[0]][featidx])
+        if catego == True:
+            return [(interval[0],interval[0]),(interval[0],interval[1])]
+        #print "catego",catego
         l, r = interval[0]+1, interval[1]
         while l < r:
             mid = int((l+r)/2)
@@ -101,7 +104,7 @@ class CART:
     def build(data, interval, scorefunc, maxtreedepth = -1):
         ''' build a CART tree '''
 
-        print "interval",interval
+        #print "interval",interval
         if interval[0] == interval[1]:
             return None
 
@@ -112,6 +115,7 @@ class CART:
 
         # calculate the score on the data
         score = scorefunc(distri)
+        #print "score",score
         maxgain = 0.0
         bestsplitcriteria = None
 
@@ -124,12 +128,12 @@ class CART:
         # children
         for f in range(F):
             allvalue = {}
-            for row in data:
-                allvalue[row[f]] = 1
+            for i in range(interval[0],interval[1]):
+                allvalue[data[i][f]] = 1
             for val in allvalue.keys():
                 splitfunc = CART.defaultSplitFunc(data, interval, f, val)
                 res = CART.splitData(data, interval, f, splitfunc)
-                print "f,val,splitinterval,splitdata",f,val,res,data
+                #print "f,val,splitinterval,splitdata",f,val,res,data
                 p = float(res[0][1]-res[0][0])/N
                 distri1 = CART.distribution(data, res[0])
                 distri2 = CART.distribution(data, res[1])
@@ -142,7 +146,7 @@ class CART:
         if maxgain > 0:
             bestsplitintvals = CART.splitData(data, interval,
                     bestsplitcriteria[0], bestsplitcriteria[1])
-            print "bestf,bestval,bestsplitinterval,bestsplitdata",bestsplitcriteria[0],bestsplitcriteria[2],bestsplitintvals,data
+            #print "bestf,bestval,bestsplitinterval,bestsplitdata",bestsplitcriteria[0],bestsplitcriteria[2],bestsplitintvals,data
             chlds = []
             maxdepth = 0
             totalleaf = 0
@@ -159,17 +163,21 @@ class CART:
 
     @staticmethod
     def prune(rootnode, scorefunc, alpha = 0.1):
+        # this is a leafnode
+        if rootnode.result != None:
+            return
         maxdepth = 0
         totalleaf = 0
         for child in rootnode.childs:
-            if child.result == None:
-                CART.prune(child, scorefunc, alpha)
+            CART.prune(child, scorefunc, alpha)
             maxdepth = max(maxdepth, child.depth)
             totalleaf += child.leafnum
         rootnode.depth = maxdepth+1
         rootnode.leafnum = totalleaf
         
         for child in rootnode.childs:
+            # if has one child which is not a leaf,
+            # then we don't need prune
             if child.result == None:
                 break
         else:
@@ -198,7 +206,7 @@ class CART:
     
     @staticmethod
     def search(rootnode, feat):
-        ''' search one the tree '''
+        ''' search on the tree '''
         if rootnode.result != None:
             return rootnode.result
 
@@ -247,7 +255,6 @@ class CART:
         maxval = 0
         label = None
         mean = 0.0
-        print distri
         for key,value in distri.items():
             if value > maxval:
                 maxval = value
@@ -266,7 +273,7 @@ if __name__ == '__main__':
     c.learn(data)
     print c.predict([0,None])
     print c.predict([5,"a"])
-    print c.predict([4,"b"])
+    print c.predict([5,"b"])
     
     data = [[1,"a",0.0],[2,"b",1.0],[0,"b",1.0],[3,"a",3.0],[3,"b",3.0],[4,"a",4.0]]
     c.learn(data, False)
