@@ -234,6 +234,81 @@ void freetree(Node *rootnode)
     delete rootnode;
 }
 
+void write(Node *rootnode, ofstream &f)
+{
+    f << "(" << endl;
+    f << "result: ";
+    if (!rootnode->result.empty())
+    {
+        f << "{" << endl;
+        for (map<double,double>::iterator iter = rootnode->result.begin();
+                iter != rootnode->result.end();
+                ++iter)
+        {
+            f << iter->first << ' ' << iter->second << endl;
+        }
+        f << "}" << endl;
+        f << ")" << endl;
+    }
+    else
+    {
+        f << "{}" << endl;
+        f << "featidx: " << rootnode->featidx << endl;
+        f << "splitval: " << rootnode->splitval << endl;
+        f << "depth: " << rootnode->depth << endl;
+        f << "leafnum: " << rootnode->leafnum << endl;
+        f << ")" << endl;
+        write(rootnode->childs[0], f);
+        write(rootnode->childs[1], f);
+    }
+}
+
+Node *read(ifstream &f)
+{
+    int featidx;
+    double splitval;
+    int depth;
+    int leafnum;
+    map<double,double> result;
+    string str;
+    f >> str;
+    if (str != "(")
+        return 0;
+    f >> str;
+    if (str != "result:")
+        return 0;
+    f >> str;
+    if (str == "{")
+    {
+        getline(f, str);
+        while (getline(f, str))
+        {
+            if (str == "}")
+                break;
+            stringstream ss(str);
+            double key, value;
+            ss >> key >> value;
+            result[key] = value;
+        }
+        f >> str;
+        return new Node(result);
+    }
+    else if (str == "{}")
+    {
+        f >> str >> featidx;
+        f >> str >> splitval;
+        f >> str >> depth;
+        f >> str >> leafnum;
+        f >> str;
+        Node *chlds[2];
+        chlds[0] = read(f);
+        chlds[1] = read(f);
+        return new Node(featidx, splitval, depth, leafnum, chlds);
+    }
+    else
+        return 0;
+}
+
 void CART::learn(cv::Mat &data, bool classifier, int maxtreedepth, double alpha)
 {
     if (rootnode)
